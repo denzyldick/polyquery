@@ -42,11 +42,7 @@ pub fn format_result(result: &QueryResult) -> String {
     output
 }
 
-pub async fn execute_query(
-    database_url: &str,
-    sql: &str,
-    _schema: Option<&Schema>,
-) -> QueryResult {
+pub async fn execute_query(database_url: &str, sql: &str, _schema: Option<&Schema>) -> QueryResult {
     let start = Instant::now();
 
     if sql.trim().to_uppercase().starts_with("SELECT")
@@ -119,10 +115,7 @@ async fn execute_mutating(database_url: &str, sql: &str, start: Instant) -> Quer
     }
 }
 
-async fn pg_select(
-    url: &str,
-    sql: &str,
-) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
+async fn pg_select(url: &str, sql: &str) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
     use sqlx::Row;
     let pool = sqlx::PgPool::connect(url)
         .await
@@ -157,13 +150,14 @@ async fn pg_select(
 
 async fn pg_execute(url: &str, sql: &str) -> Option<String> {
     let pool = sqlx::PgPool::connect(url).await.ok()?;
-    sqlx::query(sql).execute(&pool).await.err().map(|e| e.to_string())
+    sqlx::query(sql)
+        .execute(&pool)
+        .await
+        .err()
+        .map(|e| e.to_string())
 }
 
-async fn sqlite_select(
-    url: &str,
-    sql: &str,
-) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
+async fn sqlite_select(url: &str, sql: &str) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
     use sqlx::Row;
     let pool = sqlx::SqlitePool::connect(url)
         .await
@@ -198,13 +192,14 @@ async fn sqlite_select(
 
 async fn sqlite_execute(url: &str, sql: &str) -> Option<String> {
     let pool = sqlx::SqlitePool::connect(url).await.ok()?;
-    sqlx::query(sql).execute(&pool).await.err().map(|e| e.to_string())
+    sqlx::query(sql)
+        .execute(&pool)
+        .await
+        .err()
+        .map(|e| e.to_string())
 }
 
-async fn mysql_select(
-    url: &str,
-    sql: &str,
-) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
+async fn mysql_select(url: &str, sql: &str) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
     use sqlx::Row;
     let pool = sqlx::MySqlPool::connect(url)
         .await
@@ -239,5 +234,9 @@ async fn mysql_select(
 
 async fn mysql_execute(url: &str, sql: &str) -> Option<String> {
     let pool = sqlx::MySqlPool::connect(url).await.ok()?;
-    sqlx::query(sql).execute(&pool).await.err().map(|e| e.to_string())
+    sqlx::query(sql)
+        .execute(&pool)
+        .await
+        .err()
+        .map(|e| e.to_string())
 }

@@ -39,7 +39,11 @@ fn test_language_registry_extensions() {
     assert!(exts.contains(&"ts"));
     assert!(exts.contains(&"py"));
     assert!(exts.contains(&"rs"));
-    assert!(exts.len() >= 20, "Expected many extensions, got {}", exts.len());
+    assert!(
+        exts.len() >= 20,
+        "Expected many extensions, got {}",
+        exts.len()
+    );
 }
 
 #[test]
@@ -54,7 +58,10 @@ fn test_language_registry_get() {
     assert_eq!(ts.unwrap().name, "typescript");
 
     let unknown = registry.get_by_extension("xyz");
-    assert!(unknown.is_none(), "Expected no config for unknown extension");
+    assert!(
+        unknown.is_none(),
+        "Expected no config for unknown extension"
+    );
 }
 
 #[test]

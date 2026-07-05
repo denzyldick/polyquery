@@ -26,14 +26,12 @@ impl LanguageConfig {
             return Self::new_error(name);
         };
 
-        let tagged_template_query = tagged_template_pattern
-            .and_then(|s| {
-                let q = Query::new(&language, s).ok()?;
-                Some((s.to_string(), q))
-            });
+        let tagged_template_query = tagged_template_pattern.and_then(|s| {
+            let q = Query::new(&language, s).ok()?;
+            Some((s.to_string(), q))
+        });
 
-        let comment_query = comment_pattern
-            .and_then(|s| Query::new(&language, s).ok());
+        let comment_query = comment_pattern.and_then(|s| Query::new(&language, s).ok());
 
         Self {
             name,
@@ -111,9 +109,7 @@ fn go_config() -> LanguageConfig {
         &["go"],
         tree_sitter_go::LANGUAGE,
         None,
-        Some(
-            r#"(comment) @comment . (interpreted_string_literal) @content"#,
-        ),
+        Some(r#"(comment) @comment . (interpreted_string_literal) @content"#),
     )
 }
 

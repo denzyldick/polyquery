@@ -135,7 +135,9 @@ impl Backend {
         }
 
         // Publish diagnostics
-        self.client.publish_diagnostics(uri.clone(), diagnostics, None).await;
+        self.client
+            .publish_diagnostics(uri.clone(), diagnostics, None)
+            .await;
     }
 
     fn extract_tag_name(_pattern: &str) -> &str {
@@ -257,7 +259,8 @@ impl LanguageServer for Backend {
             .lock()
             .unwrap()
             .insert(uri.clone(), params.text_document.text.clone());
-        self.process_document(&uri, &params.text_document.text).await;
+        self.process_document(&uri, &params.text_document.text)
+            .await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
@@ -280,10 +283,7 @@ impl LanguageServer for Backend {
             .remove(&params.text_document.uri);
     }
 
-    async fn completion(
-        &self,
-        _: CompletionParams,
-    ) -> Result<Option<CompletionResponse>> {
+    async fn completion(&self, _: CompletionParams) -> Result<Option<CompletionResponse>> {
         let mut items: Vec<CompletionItem> = crate::completion::keyword_completions()
             .into_iter()
             .map(|c| CompletionItem {
@@ -341,7 +341,8 @@ impl LanguageServer for Backend {
                 };
 
                 let schema = self.schema.lock().unwrap().clone();
-                let result = crate::execution::execute_query(&database_url, sql, schema.as_ref()).await;
+                let result =
+                    crate::execution::execute_query(&database_url, sql, schema.as_ref()).await;
                 let output = crate::execution::format_result(&result);
                 let response = serde_json::json!({ "type": "result", "text": output });
                 return Ok(Some(response));
@@ -351,10 +352,7 @@ impl LanguageServer for Backend {
         Ok(None)
     }
 
-    async fn code_lens(
-        &self,
-        params: CodeLensParams,
-    ) -> Result<Option<Vec<CodeLens>>> {
+    async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let documents = self.documents.lock().unwrap();
         let source = match documents.get(&params.text_document.uri) {
             Some(s) => s.clone(),
@@ -385,8 +383,7 @@ impl LanguageServer for Backend {
                     while let Some(m) = matches.next() {
                         if let Some(content) = m.captures.iter().find(|c| c.index == content_idx) {
                             let start = content.node.start_position();
-                            let sql_text =
-                                content.node.utf8_text(source_bytes).unwrap_or("");
+                            let sql_text = content.node.utf8_text(source_bytes).unwrap_or("");
                             let trimmed = sql_text.trim();
                             if !trimmed.is_empty() {
                                 let range = Range {

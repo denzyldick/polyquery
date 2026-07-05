@@ -28,8 +28,7 @@ impl Schema {
     }
 
     pub fn add_table(&mut self, table: TableInfo) {
-        self.by_name
-            .insert(table.name.clone(), self.tables.len());
+        self.by_name.insert(table.name.clone(), self.tables.len());
         self.tables.push(table);
     }
 
@@ -132,13 +131,12 @@ async fn introspect_sqlite(url: &str) -> Result<Schema, String> {
     let mut schema = Schema::new();
 
     for (table_name,) in tables {
-        let rows: Vec<(String, String, bool)> = sqlx::query_as(
-            "SELECT name, type, \"notnull\" FROM pragma_table_info(?)",
-        )
-        .bind(&table_name)
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| format!("Failed to get columns for {}: {}", table_name, e))?;
+        let rows: Vec<(String, String, bool)> =
+            sqlx::query_as("SELECT name, type, \"notnull\" FROM pragma_table_info(?)")
+                .bind(&table_name)
+                .fetch_all(&pool)
+                .await
+                .map_err(|e| format!("Failed to get columns for {}: {}", table_name, e))?;
 
         let columns = rows
             .into_iter()
