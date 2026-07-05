@@ -10,6 +10,7 @@ static SQL_PARSER: std::sync::LazyLock<Mutex<Parser>> = std::sync::LazyLock::new
     Mutex::new(parser)
 });
 
+#[derive(Debug)]
 pub struct SqlError {
     pub message: String,
     pub range: Option<Range>,

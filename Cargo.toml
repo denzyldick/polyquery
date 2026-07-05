@@ -29,4 +29,4 @@ tree-sitter-swift = "0.7"
 tree-sitter-elixir = "0.3"
 tree-sitter-sequel = "0.3"
 toml = "0.8"
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "sqlite"], optional = true }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "sqlite", "mysql"] }

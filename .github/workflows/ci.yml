@@ -15,5 +15,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - run: cargo build --verbose
-      - run: cargo test --verbose
+      - name: Build
+        run: cargo build --verbose
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+      - name: Test
+        run: cargo test --verbose
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: polyquery
+          POSTGRES_PASSWORD: polyquery
+          POSTGRES_DB: polyquery_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Setup test database
+        run: |
+          PGPASSWORD=polyquery psql -h localhost -U polyquery -d polyquery_test -c "
+            CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT NOT NULL, email TEXT);
+            CREATE TABLE posts (id SERIAL PRIMARY KEY, title TEXT NOT NULL, user_id INTEGER REFERENCES users(id));
+            INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');
+          "
+        env:
+          PGPASSWORD: polyquery
+      - name: Test with PostgreSQL
+        run: cargo test --verbose -- --ignored
+        env:
+          POLYQUERY_DATABASE_URL: postgresql://polyquery:polyquery@localhost/polyquery_test
+
+  sqlite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Create SQLite test database
+        run: |
+          sqlite3 /tmp/test.db "
+            CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT);
+            CREATE TABLE posts (id INTEGER PRIMARY KEY, title TEXT NOT NULL, user_id INTEGER REFERENCES users(id));
+            INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com'), ('Bob', 'bob@example.com');
+          "
+      - name: Test with SQLite
+        run: cargo test --verbose -- --ignored
+        env:
+          POLYQUERY_DATABASE_URL: sqlite:///tmp/test.db

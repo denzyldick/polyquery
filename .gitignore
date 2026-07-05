@@ -1,0 +1,8 @@
+target/
+flycheck*
+*.swp
+*.swo
+*~
+.DS_Store
+node_modules/
+out/

@@ -7,6 +7,7 @@ use tower_lsp::{Client, LanguageServer};
 use tracing::{info, warn};
 
 use crate::language::LanguageRegistry;
+use crate::schema::Schema;
 use crate::sql;
 use tree_sitter::{QueryCursor, StreamingIterator};
 
@@ -14,6 +15,7 @@ pub struct Backend {
     pub client: Client,
     pub documents: Mutex<HashMap<Url, String>>,
     pub registry: LanguageRegistry,
+    pub schema: Mutex<Option<Schema>>,
 }
 
 impl Backend {
@@ -29,6 +31,23 @@ impl Backend {
             client,
             documents: Mutex::new(HashMap::new()),
             registry,
+            schema: Mutex::new(None),
+        }
+    }
+
+    async fn load_schema(&self) {
+        match std::env::var("POLYQUERY_DATABASE_URL") {
+            Ok(url) => {
+                info!("Connecting to database for schema introspection...");
+                match crate::schema::introspect(&url).await {
+                    Ok(s) => {
+                        info!("Introspected {} tables from database", s.tables.len());
+                        *self.schema.lock().unwrap() = Some(s);
+                    }
+                    Err(e) => warn!("Failed to introspect schema: {}", e),
+                }
+            }
+            Err(_) => info!("No POLYQUERY_DATABASE_URL set — running without schema awareness"),
         }
     }
 
@@ -222,6 +241,7 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {
+        self.load_schema().await;
         info!("Polyquery LSP ready");
     }
 
@@ -264,8 +284,7 @@ impl LanguageServer for Backend {
         &self,
         _: CompletionParams,
     ) -> Result<Option<CompletionResponse>> {
-        // Return static SQL keyword completions
-        let items: Vec<CompletionItem> = crate::completion::keyword_completions()
+        let mut items: Vec<CompletionItem> = crate::completion::keyword_completions()
             .into_iter()
             .map(|c| CompletionItem {
                 label: c.label,
@@ -276,7 +295,60 @@ impl LanguageServer for Backend {
             })
             .collect();
 
+        if let Some(schema) = self.schema.lock().unwrap().as_ref() {
+            for table in &schema.tables {
+                items.push(CompletionItem {
+                    label: table.name.clone(),
+                    detail: Some("table".to_string()),
+                    insert_text_format: Some(InsertTextFormat::PLAIN_TEXT),
+                    kind: Some(CompletionItemKind::CLASS),
+                    ..Default::default()
+                });
+                for col in &table.columns {
+                    let detail = format!("{}.{} ({})", table.name, col.name, col.data_type);
+                    items.push(CompletionItem {
+                        label: col.name.clone(),
+                        detail: Some(detail),
+                        insert_text_format: Some(InsertTextFormat::PLAIN_TEXT),
+                        kind: Some(CompletionItemKind::PROPERTY),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
+
         Ok(Some(CompletionResponse::Array(items)))
+    }
+
+    async fn execute_command(
+        &self,
+        params: ExecuteCommandParams,
+    ) -> Result<Option<serde_json::Value>> {
+        if params.command == "polyquery.runQuery" {
+            let uri = params.arguments.first().and_then(|v| v.as_str());
+            let sql = params.arguments.get(1).and_then(|v| v.as_str());
+
+            if let (Some(_uri), Some(sql)) = (uri, sql) {
+                let database_url = match std::env::var("POLYQUERY_DATABASE_URL") {
+                    Ok(url) => url,
+                    Err(_) => {
+                        let msg = serde_json::json!({
+                            "type": "error",
+                            "message": "POLYQUERY_DATABASE_URL not set"
+                        });
+                        return Ok(Some(msg));
+                    }
+                };
+
+                let schema = self.schema.lock().unwrap().clone();
+                let result = crate::execution::execute_query(&database_url, sql, schema.as_ref()).await;
+                let output = crate::execution::format_result(&result);
+                let response = serde_json::json!({ "type": "result", "text": output });
+                return Ok(Some(response));
+            }
+        }
+
+        Ok(None)
     }
 
     async fn code_lens(

@@ -1,0 +1,60 @@
+{
+  "name": "polyquery",
+  "displayName": "Polyquery",
+  "description": "SQL detection, validation, autocomplete, and execution for any language",
+  "version": "0.1.0",
+  "publisher": "polyquery",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "polyquery.runQuery",
+        "title": "Polyquery: Run SQL Query"
+      },
+      {
+        "command": "polyquery.setDatabaseUrl",
+        "title": "Polyquery: Set Database URL"
+      },
+      {
+        "command": "polyquery.clearDatabaseUrl",
+        "title": "Polyquery: Clear Database URL"
+      }
+    ],
+    "configuration": {
+      "title": "Polyquery",
+      "properties": {
+        "polyquery.serverPath": {
+          "type": "string",
+          "default": "polyquery",
+          "description": "Path to the polyquery LSP server binary"
+        },
+        "polyquery.databaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Database URL for schema introspection and query execution"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
