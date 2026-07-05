@@ -228,6 +228,12 @@ pub struct LanguageRegistry {
     configs: Vec<LanguageConfig>,
 }
 
+impl Default for LanguageRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LanguageRegistry {
     pub fn new() -> Self {
         let configs: Vec<LanguageConfig> = vec![

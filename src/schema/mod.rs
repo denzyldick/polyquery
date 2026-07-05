@@ -19,6 +19,12 @@ pub struct Schema {
     by_name: HashMap<String, usize>,
 }
 
+impl Default for Schema {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Schema {
     pub fn new() -> Self {
         Self {
