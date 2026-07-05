@@ -138,7 +138,7 @@ impl Backend {
         self.client.publish_diagnostics(uri.clone(), diagnostics, None).await;
     }
 
-    fn extract_tag_name(pattern: &str) -> &str {
+    fn extract_tag_name(_pattern: &str) -> &str {
         // Extract the tag name from the pattern (e.g., "sql" from the query)
         "sql"
     }
