@@ -1,12 +1,17 @@
 use crate::schema::Schema;
 
+/// An item in a completion list, representing a SQL keyword, table name, or column name.
 #[derive(Debug, Clone)]
 pub struct CompletionItem {
+    /// The text displayed and inserted for this completion.
     pub label: String,
+    /// Additional detail shown alongside the label.
     pub detail: Option<String>,
+    /// Optional custom text to insert instead of the label.
     pub insert_text: Option<String>,
 }
 
+/// Returns a list of common SQL keywords as completion items.
 pub fn keyword_completions() -> Vec<CompletionItem> {
     vec![
         kw("SELECT"),
@@ -89,6 +94,7 @@ fn kw(label: &str) -> CompletionItem {
     }
 }
 
+/// Returns completion items for table names from the given schema.
 pub fn table_completions(schema: &Schema) -> Vec<CompletionItem> {
     schema
         .tables
@@ -101,6 +107,7 @@ pub fn table_completions(schema: &Schema) -> Vec<CompletionItem> {
         .collect()
 }
 
+/// Returns completion items for columns of a specific table from the schema.
 pub fn column_completions(schema: &Schema, table_name: &str) -> Vec<CompletionItem> {
     schema
         .get_table(table_name)

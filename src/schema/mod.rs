@@ -1,20 +1,29 @@
 use std::collections::HashMap;
 
+/// Metadata about a single column in a database table.
 #[derive(Debug, Clone)]
 pub struct ColumnInfo {
+    /// The name of the column.
     pub name: String,
+    /// The SQL data type of the column.
     pub data_type: String,
+    /// Whether the column allows NULL values.
     pub nullable: bool,
 }
 
+/// Metadata about a database table, including its columns.
 #[derive(Debug, Clone)]
 pub struct TableInfo {
+    /// The name of the table.
     pub name: String,
+    /// The columns belonging to this table.
     pub columns: Vec<ColumnInfo>,
 }
 
+/// A database schema containing table and column metadata.
 #[derive(Debug, Clone)]
 pub struct Schema {
+    /// The tables in the schema.
     pub tables: Vec<TableInfo>,
     by_name: HashMap<String, usize>,
 }
@@ -26,6 +35,7 @@ impl Default for Schema {
 }
 
 impl Schema {
+    /// Creates an empty schema.
     pub fn new() -> Self {
         Self {
             tables: Vec::new(),
@@ -33,15 +43,18 @@ impl Schema {
         }
     }
 
+    /// Adds a table to the schema.
     pub fn add_table(&mut self, table: TableInfo) {
         self.by_name.insert(table.name.clone(), self.tables.len());
         self.tables.push(table);
     }
 
+    /// Returns a reference to the table with the given name, if it exists.
     pub fn get_table(&self, name: &str) -> Option<&TableInfo> {
         self.by_name.get(name).map(|&i| &self.tables[i])
     }
 
+    /// Returns a reference to a specific column in a table, if it exists.
     pub fn get_column(&self, table: &str, column: &str) -> Option<&ColumnInfo> {
         self.get_table(table)?
             .columns
@@ -49,11 +62,15 @@ impl Schema {
             .find(|c| c.name == column)
     }
 
+    /// Returns a list of all table names in the schema.
     pub fn table_names(&self) -> Vec<&str> {
         self.tables.iter().map(|t| t.name.as_str()).collect()
     }
 }
 
+/// Introspects a database schema from the given database URL.
+///
+/// Supports PostgreSQL, SQLite, and MySQL databases.
 pub async fn introspect(database_url: &str) -> Result<Schema, String> {
     if database_url.starts_with("postgres") || database_url.starts_with("postgresql") {
         introspect_postgres(database_url).await

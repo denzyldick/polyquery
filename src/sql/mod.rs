@@ -10,12 +10,18 @@ static SQL_PARSER: std::sync::LazyLock<Mutex<Parser>> = std::sync::LazyLock::new
     Mutex::new(parser)
 });
 
+/// Represents a SQL validation error with an optional source range.
 #[derive(Debug)]
 pub struct SqlError {
+    /// A human-readable error message.
     pub message: String,
+    /// The byte range of the error in the source text, if available.
     pub range: Option<Range>,
 }
 
+/// Validates the given SQL text by parsing it with tree-sitter.
+///
+/// Returns a list of errors found in the SQL, or an empty vector if the SQL is valid.
 pub fn validate_sql(sql_text: &str) -> Vec<SqlError> {
     let mut parser = SQL_PARSER.lock().unwrap();
     let tree = match parser.parse(sql_text, None) {
@@ -57,6 +63,7 @@ fn find_errors(node: tree_sitter::Node, source: &str, errors: &mut Vec<SqlError>
     }
 }
 
+/// Returns a locked reference to the global SQL parser instance.
 pub fn get_sql_parser() -> std::sync::MutexGuard<'static, Parser> {
     SQL_PARSER.lock().unwrap()
 }

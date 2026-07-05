@@ -2,15 +2,23 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use tree_sitter::{Language, Parser, Query};
 
+/// Configuration for a single programming language, including tree-sitter grammar and queries.
 pub struct LanguageConfig {
+    /// The human-readable name of the language.
     pub name: &'static str,
+    /// The file extensions associated with this language.
     pub extensions: &'static [&'static str],
+    /// The tree-sitter Language for parsing.
     pub language: Language,
+    /// A thread-safe parser instance for this language.
     pub parser: Mutex<Parser>,
+    /// An optional tree-sitter query for detecting tagged template literals (e.g., `sql`).
     pub tagged_template_query: Option<(String, Query)>,
+    /// An optional tree-sitter query for detecting SQL in comments.
     pub comment_query: Option<Query>,
 }
 
+/// Internal constructors for LanguageConfig instances.
 impl LanguageConfig {
     fn new(
         name: &'static str,
@@ -43,6 +51,7 @@ impl LanguageConfig {
         }
     }
 
+    // Fallback to JavaScript when the requested language grammar cannot be loaded.
     fn new_error(name: &'static str) -> Self {
         let language: Language = tree_sitter_javascript::LANGUAGE.into();
         let parser = Mutex::new(Parser::new());
@@ -223,6 +232,7 @@ fn ex_config() -> LanguageConfig {
     )
 }
 
+/// A registry of supported programming languages, indexed by file extension.
 pub struct LanguageRegistry {
     by_extension: HashMap<&'static str, usize>,
     configs: Vec<LanguageConfig>,
@@ -235,6 +245,7 @@ impl Default for LanguageRegistry {
 }
 
 impl LanguageRegistry {
+    /// Creates a new registry containing all supported language configurations.
     pub fn new() -> Self {
         let configs: Vec<LanguageConfig> = vec![
             js_config(),
@@ -268,10 +279,12 @@ impl LanguageRegistry {
         }
     }
 
+    /// Returns the language configuration for the given file extension, if any.
     pub fn get_by_extension(&self, ext: &str) -> Option<&LanguageConfig> {
         self.by_extension.get(ext).map(|&i| &self.configs[i])
     }
 
+    /// Returns a list of all registered file extensions.
     pub fn all_extensions(&self) -> Vec<&'static str> {
         self.by_extension.keys().copied().collect()
     }

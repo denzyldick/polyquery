@@ -11,14 +11,22 @@ use crate::schema::Schema;
 use crate::sql;
 use tree_sitter::{QueryCursor, StreamingIterator};
 
+/// The main LSP backend for the polyquery language server.
 pub struct Backend {
+    /// The LSP client connection for publishing diagnostics and messages.
     pub client: Client,
+    /// Maps document URIs to their current source text.
     pub documents: Mutex<HashMap<Url, String>>,
+    /// Registry of supported programming languages and their tree-sitter configurations.
     pub registry: LanguageRegistry,
+    /// Optional database schema obtained through introspection.
     pub schema: Mutex<Option<Schema>>,
 }
 
 impl Backend {
+    /// Creates a new Backend with the given LSP client.
+    ///
+    /// Initializes the language registry and logs the number of supported languages.
     pub fn new(client: Client) -> Self {
         let registry = LanguageRegistry::new();
         let ext_count = registry.all_extensions().len();
@@ -207,6 +215,9 @@ impl Backend {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
+    /// Initializes the server with the given client capabilities.
+    ///
+    /// Returns the server capabilities including text sync, diagnostics, completion, and code lens.
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         info!("Polyquery LSP initializing");
         Ok(InitializeResult {
@@ -242,16 +253,23 @@ impl LanguageServer for Backend {
         })
     }
 
+    /// Handles the initialized notification from the client.
+    ///
+    /// Triggers schema introspection from the database URL if available.
     async fn initialized(&self, _: InitializedParams) {
         self.load_schema().await;
         info!("Polyquery LSP ready");
     }
 
+    /// Handles the shutdown request from the client.
     async fn shutdown(&self) -> Result<()> {
         info!("Polyquery LSP shutting down");
         Ok(())
     }
 
+    /// Handles the document open notification.
+    ///
+    /// Stores the document text and publishes diagnostics for embedded SQL.
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let uri = params.text_document.uri.clone();
         info!("didOpen: {}", uri.path());
@@ -263,6 +281,9 @@ impl LanguageServer for Backend {
             .await;
     }
 
+    /// Handles the document change notification.
+    ///
+    /// Updates the stored document text and re-publishes diagnostics.
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri;
         if let Some(change) = params.content_changes.iter().rfind(|c| c.range.is_none()) {
@@ -275,6 +296,9 @@ impl LanguageServer for Backend {
         }
     }
 
+    /// Handles the document close notification.
+    ///
+    /// Removes the document from the stored document map.
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         info!("didClose: {}", params.text_document.uri.path());
         self.documents
@@ -283,6 +307,9 @@ impl LanguageServer for Backend {
             .remove(&params.text_document.uri);
     }
 
+    /// Provides completion items for SQL keywords and database schema objects.
+    ///
+    /// Returns SQL keywords along with table and column names from the schema.
     async fn completion(&self, _: CompletionParams) -> Result<Option<CompletionResponse>> {
         let mut items: Vec<CompletionItem> = crate::completion::keyword_completions()
             .into_iter()
@@ -320,6 +347,9 @@ impl LanguageServer for Backend {
         Ok(Some(CompletionResponse::Array(items)))
     }
 
+    /// Executes a command sent from the client.
+    ///
+    /// Supports the `polyquery.runQuery` command to execute SQL against the database.
     async fn execute_command(
         &self,
         params: ExecuteCommandParams,
@@ -352,6 +382,7 @@ impl LanguageServer for Backend {
         Ok(None)
     }
 
+    /// Provides code lenses with "Run Query" actions for detected SQL strings.
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let documents = self.documents.lock().unwrap();
         let source = match documents.get(&params.text_document.uri) {

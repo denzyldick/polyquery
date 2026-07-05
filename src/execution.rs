@@ -2,15 +2,22 @@ use crate::schema::Schema;
 use sqlx::Column;
 use std::time::Instant;
 
+/// The result of executing a SQL query against a database.
 #[derive(Debug, Clone)]
 pub struct QueryResult {
+    /// The names of the columns in the result set.
     pub columns: Vec<String>,
+    /// The rows of data, each row being a vector of string values.
     pub rows: Vec<Vec<String>>,
+    /// The duration of the query execution in milliseconds.
     pub duration_ms: f64,
+    /// The number of rows returned.
     pub row_count: usize,
+    /// An error message if the query failed.
     pub error: Option<String>,
 }
 
+/// Formats a query result into a human-readable string table.
 pub fn format_result(result: &QueryResult) -> String {
     if let Some(err) = &result.error {
         return format!("Error: {}", err);
@@ -42,6 +49,9 @@ pub fn format_result(result: &QueryResult) -> String {
     output
 }
 
+/// Executes a SQL query against the specified database URL.
+///
+/// Routes to the appropriate backend (PostgreSQL, SQLite, or MySQL) based on the URL scheme.
 pub async fn execute_query(database_url: &str, sql: &str, _schema: Option<&Schema>) -> QueryResult {
     let start = Instant::now();
 
